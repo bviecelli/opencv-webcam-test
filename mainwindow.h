@@ -27,6 +27,10 @@ private:
     VideoCapture cap;
     QGraphicsScene scene;
 
+    Mat image_template;
+    int sift_detector(Mat image);
+
+
 public slots:
     void capture();
 };

@@ -17,6 +17,8 @@ LIBS += -LC:\opencv\build\x86\vc14\lib \
     -lopencv_highgui2413 \
     -lopencv_imgproc2413 \
     -lopencv_features2d2413 \
+    -lopencv_nonfree2413 \
+    -lopencv_flann2413 \
     -lopencv_calib3d2413
 
 
