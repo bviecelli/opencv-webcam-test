@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
+#include <opencv2/imgproc/imgproc.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -42,8 +43,12 @@ void MainWindow::capture()
     cap >> frame;
     if(frame.empty())
         return;
-
-    ui->camFrame->setImage(QImage((const unsigned char*)(frame.data), frame.cols,frame.rows,QImage::Format_RGB888).rgbSwapped());
+    Mat gs_frame;
+    cvtColor(frame, gs_frame, CV_BGR2GRAY);
+    GaussianBlur(gs_frame, gs_frame, Size(5,5), 0);
+    Canny(gs_frame, gs_frame, 10, 30);
+    threshold(gs_frame, gs_frame, 70, 255, THRESH_BINARY_INV);
+    ui->camFrame->setImage(QImage((const unsigned char*)(gs_frame.data), gs_frame.cols,gs_frame.rows,QImage::Format_Grayscale8).rgbSwapped());
 
     timer.start();
 }
