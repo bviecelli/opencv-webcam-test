@@ -89,11 +89,16 @@ int MainWindow::sift_detector(Mat image)
 void MainWindow::capture()
 {
     if(!cap.isOpened())
+    {
+        timer.start();
         return;
+    }
     Mat frame;
 
     cap >> frame;
     if(frame.empty())
+    {
+        timer.start();
         return;
 
     flip(frame, frame, 1);
