@@ -37,12 +37,18 @@ MainWindow::~MainWindow()
 void MainWindow::capture()
 {
     if(!cap.isOpened())
+    {
+        timer.start();
         return;
+    }
     Mat frame;
 
     cap >> frame;
     if(frame.empty())
+    {
+        timer.start();
         return;
+    }
     Mat gs_frame;
     cvtColor(frame, gs_frame, CV_BGR2GRAY);
     GaussianBlur(gs_frame, gs_frame, Size(5,5), 0);
