@@ -11,7 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    timer.setInterval(17); //~59Hz
+    timer.setInterval(1); //~59Hz
     timer.setSingleShot(true); //Use single shot to avoid re-entering function, just a OCD ;)
     connect(&timer, SIGNAL(timeout()), this, SLOT(capture()));
 
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
         QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
 
 
-    IplImage* img1 = cvLoadImage("box_in_scene.png");
+    IplImage* img1 = cvLoadImage("/Users/bviecelli/opencv-webcam-test/box_in_scene.png");
     image_template = Mat(img1);
     cvtColor(image_template, image_template, COLOR_BGR2GRAY);
     timer.start();
@@ -62,7 +62,20 @@ int MainWindow::sift_detector(Mat image)
     FlannBasedMatcher matcher;
     std::vector< DMatch > matches;
     matcher.match(descriptors1, descriptors2, matches);
-    //matcher.knnMatch(descriptors1, descriptors2, matches, 2);
+
+    std::vector< std::vector< DMatch > > allMatches;
+//    matcher.knnMatch(descriptors1, descriptors2, allMatches, 2);
+
+//    std::vector< DMatch > allGoodMatches;
+//    for(int m=0;m<allMatches.size();m++)
+//    {
+//        if(allMatches[m][0].distance < 0.7*allMatches[m][1].distance)
+//        {
+//            allGoodMatches.push_back(allMatches[m][0]);
+//        }
+//    }
+
+//    return allGoodMatches.size();
 
     double max_dist = 0; double min_dist = 100;
 
@@ -100,18 +113,24 @@ void MainWindow::capture()
     {
         timer.start();
         return;
+    }
 
     flip(frame, frame, 1);
 
     int matches = -1;
-    if(image_template.empty())
+    if(!image_template.empty())
     {
         matches = sift_detector(frame);
-        putText(frame, QString::number(matches).toStdString(), Point(450,450), FONT_HERSHEY_COMPLEX, 2, Scalar(0,255,0), 1);
+        putText(frame, QString::number(matches).toStdString(), Point2f(100,100), FONT_HERSHEY_COMPLEX, 4, Scalar(0,255,0), 2);
     }
     else
     {
-        putText(frame, "Image Template not loaded", Point2f(100,100), FONT_HERSHEY_PLAIN, 2, Scalar(0,0,255,255));
+        putText(frame, "Image Template not loaded", Point2f(100,100), FONT_HERSHEY_COMPLEX, 4, Scalar(0,0,255,255), 2);
+    }
+
+    if(matches > 10)
+    {
+        putText(frame, "Object Found", Point2f(350,350), FONT_HERSHEY_COMPLEX, 4 , Scalar(0,255,0), 2);
     }
     ui->camFrame->setImage(QImage((const unsigned char*)(frame.data), frame.cols,frame.rows,QImage::Format_RGB888).rgbSwapped());
 
