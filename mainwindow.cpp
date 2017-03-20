@@ -2,7 +2,6 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/nonfree/features2d.hpp>
 #include <QFileInfo>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -25,10 +24,36 @@ MainWindow::MainWindow(QWidget *parent) :
     if(!cap.isOpened())
         QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
 
+    featureDetector = new SiftFeatureDetector;
+    descriptorExtractor = new SiftDescriptorExtractor;
+    descriptorMatcher = new FlannBasedMatcher;
 
+    bool isCreated = !( featureDetector.empty() || descriptorExtractor.empty() || descriptorMatcher.empty() );
+    if(!isCreated)
+    {
+        QMessageBox::warning(this, "Error", "Can't create feature detector or descriptor extractor or descriptor matcher.", QMessageBox::Ok);
+        return;
+    }
+
+#ifdef _WIN32
+    IplImage* img1 = cvLoadImage("C:\\GIT\\opencv-webcam-test\\box_in_scene.png");
+    image_template = Mat(img1);
+#elif
     IplImage* img1 = cvLoadImage("/Users/bviecelli/opencv-webcam-test/box_in_scene.png");
     image_template = Mat(img1);
-    cvtColor(image_template, image_template, COLOR_BGR2GRAY);
+#endif
+    if(image_template.empty())
+    {
+        QMessageBox::warning(this, "Error", "The template image cannot be loaded.", QMessageBox::Ok);
+    }
+    else
+    {
+        cvtColor(image_template, image_template, COLOR_BGR2GRAY);
+        featureDetector->detect(image_template, queryKeypoints);
+        descriptorExtractor->compute(image_template, queryKeypoints, queryDescriptors);
+        imshow("Query Image", image_template);
+    }
+
     timer.start();
 }
 
@@ -43,60 +68,62 @@ MainWindow::~MainWindow()
 
 int MainWindow::sift_detector(Mat image)
 {
-    Mat img1;
-    cvtColor(image, img1, COLOR_BGR2GRAY);
+    Mat frame;
+    cvtColor(image, frame, COLOR_BGR2GRAY);
 
-    SiftFeatureDetector detector;
-    SiftDescriptorExtractor extractor;
+    std::vector<KeyPoint> keypoints;
+    Mat descriptors;
 
-    std::vector<KeyPoint> keypoints1;
-    detector.detect(img1, keypoints1);
-    Mat descriptors1;
-    extractor.compute(img1, keypoints1, descriptors1);
-
-    std::vector<KeyPoint> keypoints2;
-    detector.detect(image_template, keypoints2);
-    Mat descriptors2;
-    extractor.compute(image_template, keypoints2, descriptors2);
-
-    FlannBasedMatcher matcher;
-    std::vector< DMatch > matches;
-    matcher.match(descriptors1, descriptors2, matches);
+    featureDetector->detect(frame, keypoints);
+    if(keypoints.size() == 0)
+    {
+        return 0;
+    }
+    descriptorExtractor->compute(frame, keypoints ,descriptors);
 
     std::vector< std::vector< DMatch > > allMatches;
-//    matcher.knnMatch(descriptors1, descriptors2, allMatches, 2);
+    descriptorMatcher->knnMatch(queryDescriptors, descriptors, allMatches, 2);
 
-//    std::vector< DMatch > allGoodMatches;
-//    for(int m=0;m<allMatches.size();m++)
-//    {
-//        if(allMatches[m][0].distance < 0.7*allMatches[m][1].distance)
-//        {
-//            allGoodMatches.push_back(allMatches[m][0]);
-//        }
-//    }
-
-//    return allGoodMatches.size();
-
-    double max_dist = 0; double min_dist = 100;
-
-    //-- Quick calculation of max and min distances between keypoints
-    for( int i = 0; i < descriptors1.rows; i++ )
+    std::vector< DMatch > allGoodMatches;
+    const float minRatio = 1.f / 1.5f;
+    for(int m=0;m<allMatches.size();m++)
     {
-        double dist = matches[i].distance;
-        if( dist < min_dist )
-            min_dist = dist;
-        if( dist > max_dist )
-            max_dist = dist;
-    }
-    std::vector< DMatch > goodMatches;
-    for( int i = 0; i < descriptors1.rows; i++ )
-    {
-        if( matches[i].distance <= max(2*min_dist, 0.02) )
+        if(allMatches[m][0].distance < 0.7*allMatches[m][1].distance)
         {
-            goodMatches.push_back( matches[i]);
+            const DMatch& bestMatch = allMatches[m][0];
+            const DMatch& betterMatch = allMatches[m][1];
+            float distanceRatio = bestMatch.distance / betterMatch.distance;
+            if (distanceRatio < minRatio)
+            {
+                allGoodMatches.push_back(bestMatch);
+            }
         }
     }
-    return goodMatches.size();
+
+    return allGoodMatches.size();
+
+//    std::vector< DMatch > matches;
+//    matcher.match(descriptors1, descriptors2, matches);
+//    double max_dist = 0; double min_dist = 100;
+
+//    //-- Quick calculation of max and min distances between keypoints
+//    for( int i = 0; i < descriptors1.rows; i++ )
+//    {
+//        double dist = matches[i].distance;
+//        if( dist < min_dist )
+//            min_dist = dist;
+//        if( dist > max_dist )
+//            max_dist = dist;
+//    }
+//    std::vector< DMatch > goodMatches;
+//    for( int i = 0; i < descriptors1.rows; i++ )
+//    {
+//        if( matches[i].distance <= max(2*min_dist, 0.02) )
+//        {
+//            goodMatches.push_back( matches[i]);
+//        }
+//    }
+//    return goodMatches.size();
 }
 
 void MainWindow::capture()
