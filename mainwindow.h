@@ -8,6 +8,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/nonfree/features2d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/nonfree/nonfree.hpp>
 
 using namespace cv;
 
@@ -28,20 +30,24 @@ private:
     QTimer timer;
     VideoCapture cap;
     QGraphicsScene scene;
+    bool liveIsRunning;
 
-    Mat image_template;
+    Mat liveImageTemplate;
     Ptr<FeatureDetector> featureDetector;
     Ptr<DescriptorExtractor> descriptorExtractor;
-    Ptr<DescriptorMatcher> descriptorMatcher;
+    BFMatcher descriptorMatcher;
 
-    std::vector<KeyPoint> queryKeypoints;
-    Mat queryDescriptors;
+    std::vector<KeyPoint> liveQueryKeypoints;
+    Mat liveQueryDescriptors;
 
-    int sift_detector(Mat image);
+    int sift_detector(Mat *im);
 
 
 public slots:
     void capture();
+private slots:
+    void findImageFile();
+    void toggleLiveCam();
 };
 
 #endif // MAINWINDOW_H
