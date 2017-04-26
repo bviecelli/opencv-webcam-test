@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include "dialogeditaddr.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -13,12 +14,17 @@ MainWindow::MainWindow(QWidget *parent) :
     timer.setInterval(1); //~59Hz
     timer.setSingleShot(true); //Use single shot to avoid re-entering function, just a OCD ;)
     connect(&timer, SIGNAL(timeout()), this, SLOT(capture()));
+    ui->lineEditTemplateLive->setText("/Users/bviecelli/opencv-webcam-test/box_in_scene.png");
+    camAddr = "rtsp://192.168.1.99/tcp_live/ch0_0";
+    connect(ui->actionEndereco_da_camera, SIGNAL(triggered(bool)), this, SLOT(editCamAddr()));
 
-    featureDetector = Ptr<FeatureDetector>(new ORB());
-    descriptorExtractor = Ptr<DescriptorExtractor>(new ORB());
-    descriptorMatcher = BFMatcher::BFMatcher(NORM_HAMMING);
+    detector = ORB::create();
+    matcher = DescriptorMatcher::create("BruteForce-Hamming");
+//    featureDetector = Ptr<FeatureDetector>(ORB::create());
+//    descriptorExtractor = Ptr<DescriptorExtractor>(ORB::create());
+//    descriptorMatcher = BFMatcher::BFMatcher(NORM_HAMMING);
 
-    bool isCreated = !( featureDetector.empty() || descriptorExtractor.empty()/* || descriptorMatcher.empty() */);
+    bool isCreated = !( detector==NULL || matcher==NULL/* || descriptorMatcher.empty() */);
     if(!isCreated)
     {
         QMessageBox::warning(this, "Error", "Can't create feature detector or descriptor extractor or descriptor matcher.", QMessageBox::Ok);
@@ -26,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     liveIsRunning = false;
-    ui->pushButtonStartCam->setEnabled(false);
+    //ui->pushButtonStartCam->setEnabled(false);
     connect(ui->toolButtonTemplateLive, SIGNAL(clicked(bool)), this, SLOT(findImageFile()));
     connect(ui->pushButtonStartCam, SIGNAL(clicked(bool)), this, SLOT(toggleLiveCam()));
 }
@@ -48,12 +54,14 @@ int MainWindow::sift_detector(Mat *im)
     std::vector<KeyPoint> keypoints;
     Mat descriptors;
 
-    featureDetector->detect(image, keypoints);
+    detector->detectAndCompute(image, Mat(), keypoints, descriptors);
+    detector->detectAndCompute(liveImageTemplate, Mat(), liveQueryKeypoints, liveQueryDescriptors);
+    //featureDetector->detect(image, keypoints);
     if(keypoints.size() == 0)
     {
         return 0;
     }
-    descriptorExtractor->compute(image, keypoints, descriptors);
+    //descriptorExtractor->compute(image, keypoints, descriptors);
 
 //    std::vector< std::vector< DMatch > > allMatches;
 //    descriptorMatcher->knnMatch(queryDescriptors, descriptors, allMatches, 2);
@@ -75,7 +83,8 @@ int MainWindow::sift_detector(Mat *im)
 //    }
 
     std::vector<std::vector<cv::DMatch> > allMatches;
-    descriptorMatcher.knnMatch(liveQueryDescriptors, descriptors, allMatches, 2);
+    matcher->knnMatch(liveQueryDescriptors, descriptors, allMatches, 2);
+    //descriptorMatcher.knnMatch(liveQueryDescriptors, descriptors, allMatches, 2);
 
     std::vector< DMatch > allGoodMatches;
 
@@ -156,10 +165,30 @@ void MainWindow::toggleLiveCam()
         ui->pushButtonStartCam->setEnabled(false);
         ui->camFrame_2->setScene(&scene);
 
-        if(!cap.open(0))
-            QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
+        if(ui->actionWebcam->isChecked())
+        {
+            if(!cap.open(0, CV_CAP_FFMPEG))
+            {
+                QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
+                ui->pushButtonStartCam->setEnabled(true);
+                return;
+            }
+        }
+        else
+        {
+            if(!cap.open(camAddr.toStdString(), CV_CAP_GSTREAMER))
+            {
+                QMessageBox::warning(this, "Erro", "Erro ao abrir câmera!", QMessageBox::Ok);
+                ui->pushButtonStartCam->setEnabled(true);
+                return;
+            }
+        }
         if(!cap.isOpened())
-            QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
+        {
+            QMessageBox::warning(this, "Erro", "Transmissão inválida!", QMessageBox::Ok);
+            ui->pushButtonStartCam->setEnabled(true);
+            return;
+        }
 
         liveIsRunning = true;
         timer.start();
@@ -176,6 +205,14 @@ void MainWindow::toggleLiveCam()
     }
 }
 
+void MainWindow::editCamAddr()
+{
+    DialogEditAddr *dlg = new DialogEditAddr(camAddr, this);
+    if(dlg->exec() == QDialog::Accepted)
+        camAddr = dlg->getLineEditText();
+    dlg->deleteLater();
+}
+
 void MainWindow::findImageFile()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("Select Image"),"",tr("Images (*.png *.jpg *.bmp *.jpeg)"));
@@ -186,8 +223,8 @@ void MainWindow::findImageFile()
     IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
     liveImageTemplate = Mat(img1);
 #elif __MACH__ || __UNIX__
-    IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
-    liveImageTemplate = Mat(img1);
+    //IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
+    liveImageTemplate = imread(fileName.toStdString());
 #endif
     if(liveImageTemplate.empty())
     {
@@ -201,8 +238,7 @@ void MainWindow::findImageFile()
         {
             ui->lineEditTemplateLive->setText(fileName);
             cvtColor(liveImageTemplate, liveImageTemplate, COLOR_BGR2GRAY);
-            featureDetector->detect(liveImageTemplate, liveQueryKeypoints);
-            descriptorExtractor->compute(liveImageTemplate, liveQueryKeypoints, liveQueryDescriptors);
+            detector->detectAndCompute(liveImageTemplate, Mat(), liveQueryKeypoints, liveQueryDescriptors);
             ui->pushButtonStartCam->setEnabled(true);
         }
     }

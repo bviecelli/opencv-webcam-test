@@ -4,15 +4,16 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QGraphicsScene>
+
+using namespace std;
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/nonfree/features2d.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
 
 using namespace cv;
-
 namespace Ui {
 class MainWindow;
 }
@@ -31,11 +32,13 @@ private:
     VideoCapture cap;
     QGraphicsScene scene;
     bool liveIsRunning;
+    QString camAddr;
 
     Mat liveImageTemplate;
+    Ptr<Feature2D> detector;
+    Ptr<DescriptorMatcher> matcher;
     Ptr<FeatureDetector> featureDetector;
     Ptr<DescriptorExtractor> descriptorExtractor;
-    BFMatcher descriptorMatcher;
 
     std::vector<KeyPoint> liveQueryKeypoints;
     Mat liveQueryDescriptors;
@@ -48,6 +51,7 @@ public slots:
 private slots:
     void findImageFile();
     void toggleLiveCam();
+    void editCamAddr();
 };
 
 #endif // MAINWINDOW_H
