@@ -156,10 +156,18 @@ void MainWindow::toggleLiveCam()
         ui->pushButtonStartCam->setEnabled(false);
         ui->camFrame_2->setScene(&scene);
 
-        if(!cap.open(0))
+        if(!cap.open("rtsp://192.168.0.99/udp_live/ch0_0"))
+        {
             QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
+            ui->pushButtonStartCam->setEnabled(true);
+            return;
+        }
         if(!cap.isOpened())
+        {
             QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
+            ui->pushButtonStartCam->setEnabled(true);
+            return;
+        }
 
         liveIsRunning = true;
         timer.start();
