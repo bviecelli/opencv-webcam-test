@@ -14,7 +14,6 @@ MainWindow::MainWindow(QWidget *parent) :
     timer.setInterval(1); //~59Hz
     timer.setSingleShot(true); //Use single shot to avoid re-entering function, just a OCD ;)
     connect(&timer, SIGNAL(timeout()), this, SLOT(capture()));
-    ui->lineEditTemplateLive->setText("/Users/bviecelli/opencv-webcam-test/box_in_scene.png");
     camAddr = "rtsp://192.168.1.99/tcp_live/ch0_0";
     connect(ui->actionEndereco_da_camera, SIGNAL(triggered(bool)), this, SLOT(editCamAddr()));
 
@@ -167,7 +166,7 @@ void MainWindow::toggleLiveCam()
 
         if(ui->actionWebcam->isChecked())
         {
-            if(!cap.open(0, CV_CAP_FFMPEG))
+            if(!cap.open(0))
             {
                 QMessageBox::warning(this, "Erro", "Erro ao abrir webcam!", QMessageBox::Ok);
                 ui->pushButtonStartCam->setEnabled(true);
@@ -176,7 +175,7 @@ void MainWindow::toggleLiveCam()
         }
         else
         {
-            if(!cap.open(camAddr.toStdString(), CV_CAP_GSTREAMER))
+            if(!cap.open(camAddr.toStdString(), CV_CAP_FFMPEG))
             {
                 QMessageBox::warning(this, "Erro", "Erro ao abrir câmera!", QMessageBox::Ok);
                 ui->pushButtonStartCam->setEnabled(true);
@@ -199,7 +198,6 @@ void MainWindow::toggleLiveCam()
     else
     {
         ui->pushButtonStartCam->setEnabled(false);
-        timer.stop();
         liveIsRunning = false;
         ui->pushButtonStartCam->setText("Start");
     }
@@ -282,6 +280,7 @@ void MainWindow::capture()
         timer.start();
     else
     {
+        timer.stop();
         Mat i;
         cap.read(i);
         cap.release();

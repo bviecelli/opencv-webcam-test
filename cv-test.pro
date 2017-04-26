@@ -29,8 +29,8 @@ QT_CONFIG -= no-pkg-config
 CONFIG  += link_pkgconfig
 PKGCONFIG += opencv
 }
-INCLUDEPATH += /usr/local/Cellar/opencv3/3.2.0/include
-LIBS += -L/usr/local/Cellar/opencv3/3.2.0/lib \
+INCLUDEPATH += /Users/bviecelli/opencv3/clang64/include
+LIBS += -L/Users/bviecelli/opencv3/clang64/lib \
      -lopencv_imgproc \
      -lopencv_features2d \
      -lopencv_flann \
@@ -40,8 +40,8 @@ LIBS += -L/usr/local/Cellar/opencv3/3.2.0/lib \
      -lopencv_imgcodecs\
      -lopencv_highgui
 
-INCLUDEPATH += /usr/local/Cellar/ffmpeg/3.3/include
-LIBS += -L/usr/local/Cellar/ffmpeg/3.3/lib \
+INCLUDEPATH += /usr/local/include
+LIBS += -L/usr/local/lib \
      -lavcodec \
      -lavdevice \
      -lavformat \
