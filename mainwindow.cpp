@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     liveIsRunning = false;
-    //ui->pushButtonStartCam->setEnabled(false);
+    ui->pushButtonStartCam->setEnabled(false);
     connect(ui->toolButtonTemplateLive, SIGNAL(clicked(bool)), this, SLOT(findImageFile()));
     connect(ui->pushButtonStartCam, SIGNAL(clicked(bool)), this, SLOT(toggleLiveCam()));
 }
@@ -218,8 +218,8 @@ void MainWindow::findImageFile()
         return;
     QToolButton *sender = (QToolButton*)QObject::sender();
 #ifdef _WIN32
-    IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
-    liveImageTemplate = Mat(img1);
+    //IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
+    liveImageTemplate = imread(fileName.toStdString());
 #elif __MACH__ || __UNIX__
     //IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
     liveImageTemplate = imread(fileName.toStdString());

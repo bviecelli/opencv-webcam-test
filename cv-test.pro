@@ -12,16 +12,30 @@ TARGET = cv-test
 TEMPLATE = app
 
 win32 {
-INCLUDEPATH += C:\opencv\build\include
-LIBS += -LC:\opencv\build\x86\vc14\lib \
-    -lopencv_core2413 \
-    -lopencv_highgui2413 \
-    -lopencv_imgproc2413 \
-    -lopencv_features2d2413 \
-    -lopencv_nonfree2413 \
-    -lopencv_flann2413 \
-    -lopencv_calib3d2413
+INCLUDEPATH += C:\opencv3\build\include
+LIBS += -LC:\opencv3\build\x86\mingw\lib \
+    -lopencv_core320.dll \
+    -lopencv_highgui320.dll \
+    -lopencv_imgproc320.dll \
+    -lopencv_imgcodecs320.dll \
+    -lopencv_features2d320.dll \
+    -lopencv_photo320.dll \
+    -lopencv_videoio320.dll \
+    -lopencv_flann320.dll \
+    -lopencv_calib3d320.dll
+
+INCLUDEPATH += C:\ffmpeg\include
+LIBS += -LC:\ffmpeg\lib \
+     -lavcodec \
+     -lavdevice \
+     -lavformat \
+     -lavfilter \
+     -lswresample \
+     -lpostproc \
+     -lswscale \
+     -lavutil
 }
+
 
 macx|unix {
 macx {
