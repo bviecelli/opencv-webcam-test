@@ -35,20 +35,6 @@ LIBS += -LC:\ffmpeg\lib \
      -lswscale \
      -lavutil
 }
-macx|unix {
-macx {
-QT_CONFIG -= no-pkg-config
-CONFIG  += link_pkgconfig
-PKGCONFIG += opencv
-}
-INCLUDEPATH += /usr/local/Cellar/opencv/2.4.13.2/include
-LIBS += -L/usr/local/Cellar/opencv/2.4.13.2 \
-     -lopencv_core.2.4 \
-     -lopencv_imgproc.2.4 \
-     -lopencv_features2d.2.4 \
-     -lopencv_highgui.2.4
-}
-
 
 macx|unix {
 macx {

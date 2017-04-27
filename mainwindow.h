@@ -34,24 +34,16 @@ private:
     bool liveIsRunning;
     QString camAddr;
 
-    Mat liveImageTemplate;
-    Ptr<Feature2D> detector;
-    Ptr<DescriptorMatcher> matcher;
-    Ptr<FeatureDetector> featureDetector;
-    Ptr<DescriptorExtractor> descriptorExtractor;
-
-    std::vector<KeyPoint> liveQueryKeypoints;
-    Mat liveQueryDescriptors;
-
-    int sift_detector(Mat *im);
-
+    int morph_size;
+    int detectLicensePlate(Mat *im);
+    double licensePlateFound(Mat *img, QString *licensePlate);
 
 public slots:
     void capture();
 private slots:
-    void findImageFile();
     void toggleLiveCam();
     void editCamAddr();
+    void updateParam(int n);
 };
 
 #endif // MAINWINDOW_H

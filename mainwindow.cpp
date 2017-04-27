@@ -11,29 +11,17 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    timer.setInterval(1); //~59Hz
+    timer.setInterval(17); //~59Hz
     timer.setSingleShot(true); //Use single shot to avoid re-entering function, just a OCD ;)
     connect(&timer, SIGNAL(timeout()), this, SLOT(capture()));
-    camAddr = "rtsp://192.168.1.99/tcp_live/ch0_0";
+    camAddr = "rtsp://192.168.1.241/tcp_live/ch0_0";
     connect(ui->actionEndereco_da_camera, SIGNAL(triggered(bool)), this, SLOT(editCamAddr()));
 
-    detector = ORB::create();
-    matcher = DescriptorMatcher::create("BruteForce-Hamming");
-//    featureDetector = Ptr<FeatureDetector>(ORB::create());
-//    descriptorExtractor = Ptr<DescriptorExtractor>(ORB::create());
-//    descriptorMatcher = BFMatcher::BFMatcher(NORM_HAMMING);
-
-    bool isCreated = !( detector==NULL || matcher==NULL/* || descriptorMatcher.empty() */);
-    if(!isCreated)
-    {
-        QMessageBox::warning(this, "Error", "Can't create feature detector or descriptor extractor or descriptor matcher.", QMessageBox::Ok);
-        return;
-    }
-
     liveIsRunning = false;
-    ui->pushButtonStartCam->setEnabled(false);
-    connect(ui->toolButtonTemplateLive, SIGNAL(clicked(bool)), this, SLOT(findImageFile()));
     connect(ui->pushButtonStartCam, SIGNAL(clicked(bool)), this, SLOT(toggleLiveCam()));
+    morph_size = 10;
+    ui->horizontalSlider->setValue(morph_size);
+    connect(ui->horizontalSlider, SIGNAL(valueChanged(int)), this, SLOT(updateParam(int)));
 }
 
 MainWindow::~MainWindow()
@@ -45,116 +33,16 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-int MainWindow::sift_detector(Mat *im)
+int MainWindow::detectLicensePlate(Mat *im)
 {
-    Mat image = *im;
-    cvtColor(image, image, COLOR_BGR2GRAY);
+    Mat element = getStructuringElement(0, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
+    morphologyEx( *im, *im, MORPH_TOPHAT, element );
+    return 0;
+}
 
-    std::vector<KeyPoint> keypoints;
-    Mat descriptors;
-
-    detector->detectAndCompute(image, Mat(), keypoints, descriptors);
-    detector->detectAndCompute(liveImageTemplate, Mat(), liveQueryKeypoints, liveQueryDescriptors);
-    //featureDetector->detect(image, keypoints);
-    if(keypoints.size() == 0)
-    {
-        return 0;
-    }
-    //descriptorExtractor->compute(image, keypoints, descriptors);
-
-//    std::vector< std::vector< DMatch > > allMatches;
-//    descriptorMatcher->knnMatch(queryDescriptors, descriptors, allMatches, 2);
-
-//    std::vector< DMatch > allGoodMatches;
-//    const float minRatio = 1.f / 1.4f;
-//    for(int m=0;m<allMatches.size();m++)
-//    {
-//        if(allMatches[m].size() > 0)
-//        {
-//            const DMatch& bestMatch = allMatches[m][0];
-//            const DMatch& betterMatch = allMatches[m][1];
-//            float distanceRatio = bestMatch.distance / betterMatch.distance;
-//            if (distanceRatio < minRatio)
-//            {
-//                allGoodMatches.push_back(bestMatch);
-//            }
-//        }
-//    }
-
-    std::vector<std::vector<cv::DMatch> > allMatches;
-    matcher->knnMatch(liveQueryDescriptors, descriptors, allMatches, 2);
-    //descriptorMatcher.knnMatch(liveQueryDescriptors, descriptors, allMatches, 2);
-
-    std::vector< DMatch > allGoodMatches;
-
-    for(unsigned int i=0; i<allMatches.size(); ++i)
-    {
-        // Apply NNDR
-        if(allMatches.at(i).size() == 2 && allMatches.at(i).at(0).distance <= 0.8 * allMatches.at(i).at(1).distance)
-        {
-            allGoodMatches.push_back(allMatches.at(i).at(0));
-        }
-    }
-
-    /*for(int m=0;m<allMatches.size();m++)
-    {
-        if(allMatches[m].size() > 0)
-        {
-            if (allMatches[m][0].distance < 0.75*allMatches[m][1].distance)
-            {
-                allGoodMatches.push_back(allMatches[m][0]);
-            }
-        }
-    }*/
-
-    if(allGoodMatches.size() > 0)
-    {
-        Mat img_matches;
-        drawMatches( liveImageTemplate, liveQueryKeypoints, image, keypoints, allGoodMatches, img_matches);
-        img_matches.copyTo(*im);
-    }
-    return allGoodMatches.size();
-
-//    std::vector< DMatch > allGoodMatches;
-//    const float minRatio = 1.f / 1.6f;
-//    for(int m=0;m<allMatches.size();m++)
-//    {
-//        if(allMatches[m].size() > 0)
-//        {
-//            const DMatch& bestMatch = allMatches[m][0];
-//            const DMatch& betterMatch = allMatches[m][1];
-//            float distanceRatio = bestMatch.distance / betterMatch.distance;
-//            if (distanceRatio < minRatio)
-//            {
-//                allGoodMatches.push_back(bestMatch);
-//            }
-//        }
-//    }
-
-//    return allGoodMatches.size();
-
-//    std::vector< DMatch > matches;
-//    matcher.match(descriptors1, descriptors2, matches);
-//    double max_dist = 0; double min_dist = 100;
-
-//    //-- Quick calculation of max and min distances between keypoints
-//    for( int i = 0; i < descriptors1.rows; i++ )
-//    {
-//        double dist = matches[i].distance;
-//        if( dist < min_dist )
-//            min_dist = dist;
-//        if( dist > max_dist )
-//            max_dist = dist;
-//    }
-//    std::vector< DMatch > goodMatches;
-//    for( int i = 0; i < descriptors1.rows; i++ )
-//    {
-//        if( matches[i].distance <= max(2*min_dist, 0.02) )
-//        {
-//            goodMatches.push_back( matches[i]);
-//        }
-//    }
-//    return goodMatches.size();
+double MainWindow::licensePlateFound(Mat *img, QString *licensePlate)
+{
+    return 0;
 }
 
 void MainWindow::toggleLiveCam()
@@ -193,11 +81,9 @@ void MainWindow::toggleLiveCam()
         timer.start();
         ui->pushButtonStartCam->setText("Stop");
         ui->pushButtonStartCam->setEnabled(true);
-        ui->toolButtonTemplateLive->setEnabled(false);
     }
     else
     {
-        ui->pushButtonStartCam->setEnabled(false);
         liveIsRunning = false;
         ui->pushButtonStartCam->setText("Start");
     }
@@ -211,35 +97,9 @@ void MainWindow::editCamAddr()
     dlg->deleteLater();
 }
 
-void MainWindow::findImageFile()
+void MainWindow::updateParam(int n)
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select Image"),"",tr("Images (*.png *.jpg *.bmp *.jpeg)"));
-    if(fileName.isEmpty())
-        return;
-    QToolButton *sender = (QToolButton*)QObject::sender();
-#ifdef _WIN32
-    //IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
-    liveImageTemplate = imread(fileName.toStdString());
-#elif __MACH__ || __UNIX__
-    //IplImage* img1 = cvLoadImage(fileName.toStdString().c_str());
-    liveImageTemplate = imread(fileName.toStdString());
-#endif
-    if(liveImageTemplate.empty())
-    {
-        QMessageBox::warning(this, "Error", "The image cannot be loaded.", QMessageBox::Ok);
-        ui->pushButtonStartCam->setEnabled(false);
-        ui->pushButtonDetect->setEnabled(false);
-    }
-    else
-    {
-        if(sender == ui->toolButtonTemplateLive)
-        {
-            ui->lineEditTemplateLive->setText(fileName);
-            cvtColor(liveImageTemplate, liveImageTemplate, COLOR_BGR2GRAY);
-            detector->detectAndCompute(liveImageTemplate, Mat(), liveQueryKeypoints, liveQueryDescriptors);
-            ui->pushButtonStartCam->setEnabled(true);
-        }
-    }
+    morph_size = n;
 }
 
 void MainWindow::capture()
@@ -258,10 +118,14 @@ void MainWindow::capture()
     }
     Mat gs_frame;
     cvtColor(frame, gs_frame, CV_BGR2GRAY);
-    GaussianBlur(gs_frame, gs_frame, Size(5,5), 0);
-    Canny(gs_frame, gs_frame, 10, 30);
-    threshold(gs_frame, gs_frame, 70, 255, THRESH_BINARY_INV);
-    ui->camFrame->setImage(QImage((const unsigned char*)(gs_frame.data), gs_frame.cols,gs_frame.rows,QImage::Format_Grayscale8).rgbSwapped());
+    detectLicensePlate(&gs_frame);
+    ui->camFrame_2->setImage(QImage((const unsigned char*)(gs_frame.data), gs_frame.cols,gs_frame.rows,QImage::Format_Grayscale8).rgbSwapped());
 
-    timer.start();
+    if(liveIsRunning)
+        timer.start();
+    else
+    {
+        cap.release();
+        timer.stop();
+    }
 }
