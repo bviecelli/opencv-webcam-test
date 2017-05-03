@@ -10,6 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = cv-test
 TEMPLATE = app
+DESTDIR = $$PWD
 
 win32 {
 INCLUDEPATH += C:\opencv3\build\include
@@ -40,7 +41,7 @@ macx|unix {
 macx {
 QT_CONFIG -= no-pkg-config
 CONFIG  += link_pkgconfig
-PKGCONFIG += opencv
+PKGCONFIG += opencv tesseract
 }
 INCLUDEPATH += /Users/bviecelli/opencv3/clang64/include
 LIBS += -L/Users/bviecelli/opencv3/clang64/lib \
@@ -52,6 +53,10 @@ LIBS += -L/Users/bviecelli/opencv3/clang64/lib \
      -lopencv_core\
      -lopencv_imgcodecs\
      -lopencv_highgui
+
+INCLUDEPATH += /usr/local/Cellar/tesseract/3.05.00_1/include
+LIBS += -L/usr/local/Cellar/tesseract/3.05.00_1/lib \
+     -ltesseract
 
 INCLUDEPATH += /usr/local/include
 LIBS += -L/usr/local/lib \
@@ -68,11 +73,25 @@ LIBS += -L/usr/local/lib \
 SOURCES += main.cpp\
         mainwindow.cpp \
     camframe.cpp \
-    dialogeditaddr.cpp
+    dialogeditaddr.cpp \
+    detectchars.cpp \
+    possiblechar.cpp \
+    detectplates.cpp \
+    preprocess.cpp \
+    possibleplate.cpp
 
 HEADERS  += mainwindow.h \
     camframe.h \
-    dialogeditaddr.h
+    dialogeditaddr.h \
+    detectchars.h \
+    possiblechar.h \
+    detectplates.h \
+    preprocess.h \
+    possibleplate.h
 
 FORMS    += mainwindow.ui \
     dialogeditaddr.ui
+
+DISTFILES += \
+    classifications.xml \
+    images.xml
